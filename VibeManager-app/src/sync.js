@@ -1,7 +1,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { copySync } from 'fs-extra/esm';
 import { join } from 'node:path';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 
 const configPath = join(process.cwd(), 'repositories.json');
 const dataDir = join(process.cwd(), 'data/projects');
@@ -13,6 +13,11 @@ if (!existsSync(configPath)) {
 
 const config = JSON.parse(readFileSync(configPath, 'utf8'));
 
+const GIT_URL_RE = /^(https?:\/\/[^\s]+|git@[^\s]+|ssh:\/\/[^\s]+)$/i;
+function isAllowedGitUrl(url) {
+  return typeof url === 'string' && GIT_URL_RE.test(url.trim()) && url.length < 4096;
+}
+
 console.log("Starting sync sequence for VibeManager...");
 
 for (const repo of config.repositories) {
@@ -20,14 +25,18 @@ for (const repo of config.repositories) {
   const destPath = join(dataDir, repo.id);
   
   if (repo.url) {
-     // Scenario: remote Git repository URL
+     if (!isAllowedGitUrl(repo.url)) {
+       console.error(`Invalid or unsafe git URL for ${repo.id}; skipping.`);
+       continue;
+     }
+     const url = repo.url.trim();
      try {
        if (existsSync(destPath)) {
          console.info(`Pulling latest changes in ${destPath}...`);
-         execSync('git pull', { cwd: destPath, stdio: 'inherit' });
+         execFileSync('git', ['pull'], { cwd: destPath, stdio: 'inherit' });
        } else {
          console.info(`Cloning repository into ${destPath}...`);
-         execSync(`git clone ${repo.url} ${destPath}`, { stdio: 'inherit' });
+         execFileSync('git', ['clone', url, destPath], { stdio: 'inherit' });
        }
      } catch (e) {
        console.error(`Failed to sync remote repo ${repo.id}: `, e.message);

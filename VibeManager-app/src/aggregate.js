@@ -1,10 +1,12 @@
-import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import yaml from 'yaml';
 
-const dataDir = join(process.cwd(), 'data/projects');
-const outputJsonPath = join(process.cwd(), 'data/aggregated.json');
-const outputMdPath = join(process.cwd(), 'WORKSPACE_SUMMARY.md');
+const rootDir = process.env.AGGREGATE_ROOT || process.cwd();
+const dataDir = join(rootDir, 'data/projects');
+const outputJsonPath = join(rootDir, 'data/aggregated.json');
+const outputMdPath = join(rootDir, 'WORKSPACE_SUMMARY.md');
+const frontendPublicJson = join(rootDir, 'frontend/public/aggregated.json');
 
 const aggregated = {
     lastUpdated: new Date().toISOString(),
@@ -111,8 +113,15 @@ if (existsSync(dataDir)) {
     }
 }
 
-writeFileSync(outputJsonPath, JSON.stringify(aggregated, null, 2), 'utf8');
+const jsonStr = JSON.stringify(aggregated, null, 2);
+writeFileSync(outputJsonPath, jsonStr, 'utf8');
 writeFileSync(outputMdPath, mdSummary, 'utf8');
+try {
+  mkdirSync(join(rootDir, 'frontend/public'), { recursive: true });
+  writeFileSync(frontendPublicJson, jsonStr, 'utf8');
+} catch (e) {
+  console.warn('Could not write frontend/public/aggregated.json:', e.message);
+}
 
 console.log(`✅ Aggregation complete.`);
 console.log(`JSON written to ${outputJsonPath}`);

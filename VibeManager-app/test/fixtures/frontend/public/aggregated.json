@@ -1,0 +1,32 @@
+{
+  "lastUpdated": "2026-02-22T01:08:55.085Z",
+  "projects": [
+    {
+      "id": "FAKE-001",
+      "name": "Fake Project",
+      "health": "GREEN",
+      "department": "Engineering",
+      "tasks": [
+        {
+          "id": "t1",
+          "title": "Blocked task",
+          "status": "blocked"
+        },
+        {
+          "id": "t2",
+          "title": "Done task",
+          "status": "done"
+        }
+      ],
+      "blockers": [
+        {
+          "id": "t1",
+          "title": "Blocked task",
+          "status": "blocked"
+        }
+      ],
+      "next": "Ship the feature.",
+      "statusText": "- Overall: GREEN\nWeekly update here.\n"
+    }
+  ]
+}

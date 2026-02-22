@@ -39,9 +39,9 @@ If you have multiple projects running VibeAgent, you can view their status in on
 
 1. Clone this repository locally to your machine.
 2. In `VibeManager-app/data/projects/`, create symlinks (or copy) your local project folders that contain a `VibeAgent/` directory.
-3. Start the dashboard:
+3. Start the dashboard (runs aggregate then the frontend dev server):
    ```bash
    cd VibeManager-app
    npm run start
    ```
-*(Note: Ensure you run `node src/aggregate.js` first to compile the data).*
+   To refresh data later: `npm run sync && npm run aggregate`, then reload the app.
