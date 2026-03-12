@@ -7,7 +7,6 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { execSync } from 'node:child_process';
 
 const args = process.argv.slice(2);
 const projectName = args[0] || 'My Project';
@@ -24,6 +23,10 @@ const rootDir = path.join(process.cwd(), 'VibeAgent');
 const TEMPLATES_URL = "https://raw.githubusercontent.com/WHTLY/vibemanager-ecosystem/main/VibeAgent-skill/references/bootstrap-templates.md";
 
 console.log(`🚀 Auto-Bootstrapping VibeAgent Canon for: ${projectName} (${projectId})`);
+
+if (fs.existsSync(path.join(rootDir, 'METADATA.yaml'))) {
+    console.warn('⚠️ VibeAgent/ already has METADATA.yaml; overwriting. Re-run with same args to refresh.');
+}
 
 // 1. Create Directories
 const dirs = [
@@ -91,7 +94,28 @@ function parseAndWriteFiles(templateMarkdown) {
     return filesCreated;
 }
 
-// 4. Download additional tools directly
+// 4. Deploy _schemas from references/schemas.md
+async function deploySchemas() {
+    const BASE_RAW_URL = "https://raw.githubusercontent.com/WHTLY/vibemanager-ecosystem/main/VibeAgent-skill";
+    try {
+        const schemasMdResponse = await fetch(`${BASE_RAW_URL}/references/schemas.md`);
+        const schemasMd = await schemasMdResponse.text();
+        const schemaRegex = /## ([^\n]+\.schema\.json)\n+```json\n([\s\S]*?)```/g;
+        let match;
+        let count = 0;
+        while ((match = schemaRegex.exec(schemasMd)) !== null) {
+            const filename = match[1].trim();
+            const content = match[2];
+            fs.writeFileSync(path.join(rootDir, '_schemas', filename), content, 'utf8');
+            count++;
+            console.log(`  📝 Created: VibeAgent/_schemas/${filename}`);
+        }
+    } catch (e) {
+        console.warn('⚠️ Could not fetch schemas:', e.message);
+    }
+}
+
+// 5. Download additional tools directly
 async function downloadTools() {
     console.log(`📥 Fetching validator tools...`);
     const BASE_RAW_URL = "https://raw.githubusercontent.com/WHTLY/vibemanager-ecosystem/main/VibeAgent-skill";
@@ -126,21 +150,36 @@ async function run() {
     const count = parseAndWriteFiles(templatesMd);
 
     await downloadTools();
+    await deploySchemas();
 
     console.log(`\n✅ Successfully generated ${count} canon files.`);
 
-    // Add AGENTS.md to the root
+    // Add AGENTS.md to the root (extract inner markdown block, then replace placeholders)
     try {
         const agentsResponse = await fetch("https://raw.githubusercontent.com/WHTLY/vibemanager-ecosystem/main/VibeAgent-skill/references/agents-md-template.md");
-        const agentsMd = await agentsResponse.text();
-        fs.writeFileSync(path.join(process.cwd(), 'AGENTS.md'), agentsMd, 'utf8');
+        const agentsMdRaw = await agentsResponse.text();
+        const openFence = '```markdown\n';
+        const startIdx = agentsMdRaw.indexOf(openFence);
+        let agentsContent = agentsMdRaw;
+        if (startIdx !== -1) {
+            const contentStart = startIdx + openFence.length;
+            const lastFence = agentsMdRaw.lastIndexOf('\n```');
+            if (lastFence > contentStart) {
+                agentsContent = agentsMdRaw.slice(contentStart, lastFence);
+            }
+        }
+        agentsContent = agentsContent
+            .replace(/{PROJECT_NAME}/g, projectName)
+            .replace(/{PROJECT_ID}/g, projectId)
+            .replace(/{DEPARTMENT}/g, department);
+        fs.writeFileSync(path.join(process.cwd(), 'AGENTS.md'), agentsContent, 'utf8');
         console.log(`  📝 Created: AGENTS.md (Root level)`);
     } catch (e) {
         console.warn('⚠️ Could not fetch AGENTS.md template');
     }
 
     console.log(`\n🎉 VibeAgent Bootstrap Complete!`);
-    console.log(`Dependencies note: To run validations, the project needs 'yaml' and 'ajv' npm packages.`);
+    console.log(`Dependencies: To run validations, install: npm install yaml ajv ajv-formats`);
 }
 
 run();

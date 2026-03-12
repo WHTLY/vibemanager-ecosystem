@@ -3,14 +3,15 @@ name: VibeAgent
 description: >
   VibeAgent — living project governance system. Bootstraps and maintains a VibeAgent/ directory
   with structured canon: tasks, architecture, status, risks, and session protocol.
-  Use this skill whenever starting a new project, onboarding to an existing project with a VibeAgent/ folder,
-  opening or closing a work session, updating project status, managing tasks, or running canon validation.
-  Also use proactively at the start of any session in a project that has a VibeAgent/ directory — read STATUS.md and ROADMAP.md first.
-  Supports `#lite` or `#quick` keywords in user prompt to bypass heavy governance protocols for minor changes.
-  Supports `#cleanup` or `#garbage-collection` keywords to run an explicit technical debt cleanup pass.
+  Use when: bootstrap, starting or closing a session, updating status/roadmap/tasks, or validating canon.
+  Trigger terms: bootstrap, VibeAgent/, STATUS.md, ROADMAP.md, session start, session close, canon, governance, AGENTS.md, validate.js.
+  Proactive: at session start in a project with VibeAgent/, read STATUS.md and ROADMAP.md first.
+  Supports #lite or #quick to bypass Session Start/Close; #cleanup or #garbage-collection for technical debt pass.
 ---
 
 # VibeAgent Governance
+
+**References:** bootstrap-templates, agents-md-template, schemas, validate-js, bootstrap.sh.
 
 ## Overview
 
@@ -49,6 +50,10 @@ User prompt contains "#cleanup" or "#garbage-collection"
 
 When initializing governance for a new project, create the full structure.
 Read `references/bootstrap-templates.md` for the complete file templates.
+
+**Two paths:**
+- **One-click:** Run the installer (from the ecosystem repo). It fetches and runs `auto-bootstrap.js`, which creates VibeAgent/ dirs, all template files from bootstrap-templates, AGENTS.md (with placeholders), _tools/ (validate.js, close-session.js from references/validate-js.md), and _schemas/ (from references/schemas.md). Production URL: see project README (e.g. `curl -sSL .../VibeAgent-skill/scripts/install.sh | bash -s "Project Name" "PROJ-ID" "Department"`).
+- **Manual:** Run `scripts/bootstrap.sh` to create VibeAgent/ dirs only. Then generate file content from `references/bootstrap-templates.md` and `references/agents-md-template.md` (extract inner markdown, replace placeholders). Manual bootstrap does not create _schemas/ or _tools/ unless the agent also deploys them (e.g. fetch schemas.md and validate-js.md, extract and write).
 
 **Handling Existing Projects (Quarantine First):** If bootstrapping into a project that already has unstructured task lists (e.g., TODO.txt, old markdown plans), parse those docs into the new `VibeAgent/tasks/` format and move the old legacy files to `VibeAgent/quarantine/`. Do not leave unstructured legacy task files floating around.
 
@@ -193,10 +198,19 @@ Run: `node VibeAgent/_tools/validate.js`
 
 Exit codes: `0` (valid), `2` (failed), `3` (error)
 
-## 8. Resources
+**Troubleshooting:** Validation fails (missing file, bad health) — follow the REMEDIATION FOR AI AGENT output. Missing file: create from `references/bootstrap-templates.md` (matching section) or re-run bootstrap.
+
+## 8. Examples
+
+- User: "Bootstrap this repo" / "Set up VibeAgent" — Run or recommend one-click install; create VibeAgent/ from references/bootstrap-templates.md and AGENTS.md from agents-md-template; run validate.js.
+- User: "What's the status?" / "Any blockers?" — Read VibeAgent/STATUS.md and VibeAgent/ROADMAP.md; summarize health, blockers, next steps.
+- User: "Close my session" — Update tasks, STATUS.md, ROADMAP.md; create session note in VibeAgent/sessions/; run node VibeAgent/_tools/close-session.js (or validate.js); do not reply until validation passes.
+
+## 9. Resources
 
 - `references/bootstrap-templates.md` — Templates for all VibeAgent/ files.
 - `references/agents-md-template.md` — AGENTS.md template.
 - `references/schemas.md` — JSON schema definitions.
 - `references/validate-js.md` — validate.js source.
-- `scripts/bootstrap.sh` — Automated bootstrap script.
+- `scripts/bootstrap.sh` — Manual bootstrap (dirs only); use with bootstrap-templates for full setup.
+- One-click install: `curl -sSL <ecosystem>/VibeAgent-skill/scripts/install.sh | bash -s "Project Name" "PROJ-ID" "Department"` (see README for URL).

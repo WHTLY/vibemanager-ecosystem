@@ -5,6 +5,7 @@ All templates for files created during VibeAgent Canon bootstrap. Replace placeh
 - `{PROJECT_ID}` — project identifier
 - `{DEPARTMENT}` — department
 - `{DATE}` — current date in YYYY-MM-DD format
+- `{DATE_COMPACT}` — current date in YYYY_MM_DD format (e.g. task filenames, MAP.yaml IDs)
 - `{AGENT}` — agent identifier
 
 ---
