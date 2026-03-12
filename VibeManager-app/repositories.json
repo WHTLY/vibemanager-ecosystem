@@ -1,0 +1,9 @@
+{
+  "repositories": [
+    {
+      "id": "PROJ-001",
+      "name": "Dummy Project 1",
+      "path": "./dummy-project-1"
+    }
+  ]
+}
