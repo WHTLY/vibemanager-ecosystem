@@ -18,6 +18,19 @@ const dateCompact = date.replace(/-/g, '_');
 const agent = 'auto-bootstrap';
 
 const rootDir = path.join(process.cwd(), 'VibeAgent');
+const legacyHarnessCandidates = [
+    'AGENTS.md',
+    '.cursorrules',
+    '.clinerules',
+    'CLAUDE.md',
+    'GEMINI.md',
+    'COPILOT.md',
+    'RULES.md',
+    '.github/copilot-instructions.md',
+    '.cursor/rules',
+    'TODO.md',
+    'ROADMAP.md'
+];
 
 // Fallback template URL (from GitHub raw)
 const TEMPLATES_URL = "https://raw.githubusercontent.com/WHTLY/vibemanager-ecosystem/main/VibeAgent-skill/references/bootstrap-templates.md";
@@ -27,6 +40,28 @@ console.log(`🚀 Auto-Bootstrapping VibeAgent Canon for: ${projectName} (${proj
 if (fs.existsSync(path.join(rootDir, 'METADATA.yaml'))) {
     console.warn('⚠️ VibeAgent/ already has METADATA.yaml; overwriting. Re-run with same args to refresh.');
 }
+
+function detectLegacyHarnessArtifacts() {
+    return legacyHarnessCandidates.filter((candidate) => fs.existsSync(path.join(process.cwd(), candidate)));
+}
+
+function printMigrationNotice(artifacts) {
+    if (artifacts.length === 0) {
+        return;
+    }
+
+    console.warn('\n⚠️ Migration-aware bootstrap notice: detected existing governance artifacts:');
+    artifacts.forEach((artifact) => console.warn(`  - ${artifact}`));
+    console.warn('\nBefore retiring or quarantining legacy governance, confirm with the user:');
+    console.warn('  1. Replace current harness now, run in shadow mode, or migrate in phases?');
+    console.warn('  2. Which existing files stay authoritative during migration?');
+    console.warn('  3. Which useful extras should be imported (prompts, commands, rules, research, tasks)?');
+    console.warn('  4. Should legacy artifacts be quarantined immediately or only after validation?');
+    console.warn('  5. Are there any files that must not be moved or rewritten automatically?');
+    console.warn('\nRecommended next step: run the migration audit workflow before deleting or overwriting anything.');
+}
+
+printMigrationNotice(detectLegacyHarnessArtifacts());
 
 // 1. Create Directories
 const dirs = [
@@ -172,6 +207,12 @@ async function run() {
             .replace(/{PROJECT_NAME}/g, projectName)
             .replace(/{PROJECT_ID}/g, projectId)
             .replace(/{DEPARTMENT}/g, department);
+        const legacyAgentsPath = path.join(process.cwd(), 'AGENTS.md');
+        const quarantineAgentsPath = path.join(rootDir, 'quarantine', 'AGENTS.pre-vibeagent.md');
+        if (fs.existsSync(legacyAgentsPath)) {
+            fs.copyFileSync(legacyAgentsPath, quarantineAgentsPath);
+            console.log(`  🗃️ Preserved existing AGENTS.md at: VibeAgent/quarantine/AGENTS.pre-vibeagent.md`);
+        }
         fs.writeFileSync(path.join(process.cwd(), 'AGENTS.md'), agentsContent, 'utf8');
         console.log(`  📝 Created: AGENTS.md (Root level)`);
     } catch (e) {

@@ -20,7 +20,8 @@ This directory is the **canonical source of truth** (canon) for project governan
 ## Quick Start
 1. Read `STATUS.md` for current project health
 2. Read `ROADMAP.md` for immediate objectives
-3. Validate canon: `node VibeAgent/_tools/validate.js`
+3. Read `LESSONS.md` if the task touches an area with prior corrections or repeat failures
+4. Validate canon: `node VibeAgent/_tools/validate.js`
 
 ## Structure
 | File/Directory | Purpose |
@@ -35,14 +36,16 @@ This directory is the **canonical source of truth** (canon) for project governan
 | `PRODUCT_CONTRACT.md` | Product contract |
 | `STREAMS.md` | Parallel work streams |
 | `RISKS.md` | Known risks + mitigations |
+| `LESSONS.md` | Corrections, failure patterns, prevention rules |
 | `METADATA.yaml` | Project metadata |
 | `MAP.yaml` | Architecture map |
 | `COMMANDS.yaml` | Command center |
 
 ## Rules
-- Start: Read STATUS + ROADMAP + tasks/
-- Work: Update tasks in `tasks/` in real-time
-- Close: Update STATUS, ROADMAP, create session note, validate
+- Start: Read STATUS + ROADMAP + tasks/ and relevant lessons
+- Work: Update tasks in `tasks/` in real-time, verify before `done`, capture reusable lessons
+- Close: Update tasks, lessons, STATUS, ROADMAP, create session note, validate
+- Migration: quarantine superseded harness artifacts, but re-home useful extras into canonical destinations
 - Lite Mode: Use `#lite` or `#quick` in your prompt to bypass strict Start/Close session protocols.
 ```
 
@@ -63,7 +66,26 @@ This file defines the **Session Protocol** and canon discipline.
 *Skip if `#lite` flag is present in prompt.*
 1. Read `VibeAgent/STATUS.md` and `VibeAgent/ROADMAP.md`.
 2. Check `VibeAgent/tasks/` for current open/in_progress tasks.
-3. If intended work does not match `VibeAgent/ROADMAP.md`, update with rationale.
+3. Read `VibeAgent/LESSONS.md` if the work touches an area with prior corrections or repeat failures.
+4. If the task is non-trivial (3+ steps, architecture, cross-cutting, or unclear root cause), add a checkable `## Plan` to the active task before implementation.
+5. If intended work does not match `VibeAgent/ROADMAP.md`, update with rationale.
+
+## Planning & Orchestration
+- For non-trivial work, maintain a checkable `## Plan` in the active task.
+- If the plan breaks due to new evidence, stop and rewrite it before continuing.
+- Use `VibeAgent/STREAMS.md` to organize parallel work. If the agent supports subagents, one stream may be delegated to one worker; otherwise execute the same decomposition manually.
+
+## Verification Before Done
+- Never set a task to `done` without updating its `## Verification` section.
+- Prefer targeted proof: failing test now passes, smoke check succeeds, relevant logs are clean, or build/lint command passes.
+
+## Bugfix Discipline
+- Start from evidence: failing test, log, or concrete repro.
+- Fix the root cause with minimal impact. Avoid speculative or broad cleanup disguised as a bugfix.
+
+## Lessons Loop
+- After any user correction or recurring failure pattern, append a concise lesson to `VibeAgent/LESSONS.md`.
+- Keep lessons short, actionable, and prevention-oriented.
 
 ## Strict Health Enforcements
 - Health in `STATUS.md` must be exactly one of: GREEN, YELLOW, or RED.
@@ -72,16 +94,18 @@ This file defines the **Session Protocol** and canon discipline.
 - Never delete files outright without reason.
 - Move them to `VibeAgent/quarantine/` and log them in `VibeAgent/quarantine/REGISTRY.md`.
 - Applies to old project docs when onboarding VibeAgent into an existing codebase.
+- If a legacy harness contains useful prompts, rules, commands, or research, implement them in the proper canonical destination instead of only archiving the source file.
 
 ## Session Close (MUST)
 *Skip if `#lite` flag is present in prompt.*
 1. Update `VibeAgent/tasks/`
-2. Update `VibeAgent/STATUS.md`
-3. Update `VibeAgent/ROADMAP.md`
-4. Create a session note: `VibeAgent/sessions/YYYY-MM-DD_{AGENT}_{objective_slug}.md`
-5. **Session Archiving**: If `sessions/` has >10 files, compress the 5 oldest into `sessions/archive/WEEK_{X}_{SUMMARY}.md`.
-6. Run: `node VibeAgent/_tools/validate.js`
-7. **You must pass validation before completing work for the human.**
+2. Update `VibeAgent/LESSONS.md` if new lessons emerged
+3. Update `VibeAgent/STATUS.md`
+4. Update `VibeAgent/ROADMAP.md`
+5. Create a session note: `VibeAgent/sessions/YYYY-MM-DD_{AGENT}_{objective_slug}.md`
+6. **Session Archiving**: If `sessions/` has >10 files, compress the 5 oldest into `sessions/archive/WEEK_{X}_{SUMMARY}.md`.
+7. Run: `node VibeAgent/_tools/validate.js`
+8. **You must pass validation before completing work for the human.**
 ```
 
 ---
@@ -154,11 +178,24 @@ updated_at: "{DATE}"
 # Scope & Motivation
 No governance structure existed. Start tracking tasks here in the markdown format.
 
+## Plan
+- [x] Create VibeAgent/ directory structure
+- [ ] Fill canonical templates and placeholders
+- [ ] Review onboarding / quarantine needs
+- [ ] Run canon validation
+
 ## Definition of Done (Checklist)
 - [x] VibeAgent/ directory created with all required files
 - [ ] AGENTS.md deployed at project root
 - [ ] pre-commit Git hook recommended or created (if requested)
 - [ ] Validation passing
+
+## Verification
+- [ ] `node VibeAgent/_tools/validate.js`
+
+## Review
+- Outcome summary:
+- Follow-ups:
 
 ## Blockers / Notes
 None yet.
@@ -181,6 +218,7 @@ One source of truth per domain. If a claim contradicts code — code wins, doc g
 | Product contract | `VibeAgent/PRODUCT_CONTRACT.md` |
 | Glossary | `VibeAgent/GLOSSARY.md` |
 | Risks | `VibeAgent/RISKS.md` |
+| Lessons | `VibeAgent/LESSONS.md` |
 | Quarantine log | `VibeAgent/quarantine/REGISTRY.md` |
 
 ## Core Business Rules
@@ -238,9 +276,11 @@ One source of truth per domain. If a claim contradicts code — code wins, doc g
 ```markdown
 # Parallel Streams
 
-| Stream | Focus | Owner | Merge Gate |
-|--------|-------|-------|-----------|
-| 1. Canon/Governance | VibeAgent/, KNOWLEDGE, quarantine | TBD | VibeAgent validate passes |
+| Stream | Focus | Owner | Execution | Merge Gate |
+|--------|-------|-------|-----------|------------|
+| 1. Canon/Governance | VibeAgent/, KNOWLEDGE, quarantine | TBD | Manual or delegated | VibeAgent validate passes |
+
+If the agent supports subagents or parallel workers, one stream may map to one worker. If not, use the same structure for manual decomposition.
 ```
 
 ---
@@ -253,6 +293,19 @@ One source of truth per domain. If a claim contradicts code — code wins, doc g
 | ID | Risk | Impact | Likelihood | Mitigation | Status |
 |----|------|--------|-----------|------------|--------|
 | R1 | [Risk description] | High/Med/Low | High/Med/Low | [Mitigation plan] | Open |
+```
+
+---
+
+## VibeAgent/LESSONS.md
+
+```markdown
+# Lessons
+
+Capture corrections and repeat failure patterns here so future sessions do not repeat them.
+
+| Date | Trigger | Mistake Pattern | Prevention Rule | Status |
+|------|---------|-----------------|-----------------|--------|
 ```
 
 ---
@@ -413,6 +466,6 @@ prompts: []
 
 Log deleted or replaced files here before physically moving them to this directory. Vital for codebase onboarding!
 
-| Date | Source Path | Reason | Action Taken |
-|------|-------------|--------|--------------|
+| Date | Source Path | Reason | Action Taken | Imported To / Extra Implemented |
+|------|-------------|--------|--------------|-------------------------------|
 ```
