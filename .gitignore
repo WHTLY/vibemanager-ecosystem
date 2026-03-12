@@ -16,3 +16,5 @@ lerna-debug.log*
 
 # Test/Examples
 dummy-project-1/
+VibeManager-app/data/
+VibeManager-app/frontend/public/aggregated.json

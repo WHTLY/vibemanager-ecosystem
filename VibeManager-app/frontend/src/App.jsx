@@ -1,14 +1,30 @@
 import { useState, useEffect } from 'react';
 import { LayoutDashboard, CheckCircle2, AlertTriangle, XCircle, Activity, Box, Filter } from 'lucide-react';
-import aggregatedData from '../../data/aggregated.json';
+
+const emptyData = { projects: [], lastUpdated: '' };
 
 function App() {
-  const [data, setData] = useState({ projects: [], lastUpdated: '' });
+  const [data, setData] = useState(emptyData);
   const [filter, setFilter] = useState('ALL');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    // In a real app we'd fetch this. We'll simulate loading our generated JSON.
-    setData(aggregatedData);
+    let cancelled = false;
+    fetch('/aggregated.json')
+      .then((r) => {
+        if (!r.ok) throw new Error(r.status === 404 ? 'Data not found' : `HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((d) => {
+        if (!cancelled && d && Array.isArray(d.projects)) {
+          setData({ projects: d.projects, lastUpdated: d.lastUpdated || '' });
+          setError(null);
+        } else if (!cancelled) setError('Invalid data');
+      })
+      .catch((e) => { if (!cancelled) setError(e.message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
   const getHealthColor = (health) => {
@@ -35,6 +51,29 @@ function App() {
   const redCount = data.projects.filter(p => p.health === 'RED').length;
   const yellowCount = data.projects.filter(p => p.health === 'YELLOW').length;
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0f172a] text-slate-200 font-sans p-6 md:p-10 flex items-center justify-center">
+        <div className="glass-panel rounded-2xl p-10 text-center">
+          <Activity className="w-12 h-12 text-slate-500 animate-pulse mx-auto mb-4" />
+          <p className="text-slate-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#0f172a] text-slate-200 font-sans p-6 md:p-10 flex items-center justify-center">
+        <div className="glass-panel rounded-2xl p-10 text-center max-w-md">
+          <AlertTriangle className="w-12 h-12 text-amber-400 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-slate-200 mb-2">No data</h2>
+          <p className="text-slate-400 mb-4">Run sync + aggregate first: <code className="text-slate-300">npm run sync && npm run aggregate</code> (from VibeManager-app), then refresh.</p>
+          <p className="text-xs text-slate-500">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-200 font-sans p-6 md:p-10">
       {/* Header */}
@@ -45,7 +84,7 @@ function App() {
           </div>
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 text-transparent bg-clip-text">VibeManager</h1>
-            <p className="text-sm text-slate-400">Project Portfolio overview &bull; Last updated: {new Date(data.lastUpdated).toLocaleString()}</p>
+            <p className="text-sm text-slate-400">Project Portfolio overview &bull; Last updated: {data.lastUpdated ? new Date(data.lastUpdated).toLocaleString() : '—'}</p>
           </div>
         </div>
 
@@ -71,10 +110,10 @@ function App() {
               <h2 className="font-semibold">Filter Health</h2>
             </div>
             <div className="space-y-2">
-              <button onClick={() => setFilter('ALL')} className={`w-full text-left px-4 py-2 rounded-lg transition-colors \${filter === 'ALL' ? 'bg-slate-700' : 'hover:bg-slate-800/50'}`}>All Projects ({data.projects.length})</button>
-              <button onClick={() => setFilter('RED')} className={`w-full text-left px-4 py-2 rounded-lg transition-colors flex justify-between \${filter === 'RED' ? 'bg-rose-500/10 text-rose-400' : 'hover:bg-slate-800/50'}`}><span>Critical</span> <span>{redCount}</span></button>
-              <button onClick={() => setFilter('YELLOW')} className={`w-full text-left px-4 py-2 rounded-lg transition-colors flex justify-between \${filter === 'YELLOW' ? 'bg-amber-500/10 text-amber-400' : 'hover:bg-slate-800/50'}`}><span>Warning</span> <span>{yellowCount}</span></button>
-              <button onClick={() => setFilter('GREEN')} className={`w-full text-left px-4 py-2 rounded-lg transition-colors flex justify-between \${filter === 'GREEN' ? 'bg-emerald-500/10 text-emerald-400' : 'hover:bg-slate-800/50'}`}><span>Healthy</span> <span>{data.projects.length - redCount - yellowCount}</span></button>
+              <button onClick={() => setFilter('ALL')} className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${filter === 'ALL' ? 'bg-slate-700' : 'hover:bg-slate-800/50'}`}>All Projects ({data.projects.length})</button>
+              <button onClick={() => setFilter('RED')} className={`w-full text-left px-4 py-2 rounded-lg transition-colors flex justify-between ${filter === 'RED' ? 'bg-rose-500/10 text-rose-400' : 'hover:bg-slate-800/50'}`}><span>Critical</span> <span>{redCount}</span></button>
+              <button onClick={() => setFilter('YELLOW')} className={`w-full text-left px-4 py-2 rounded-lg transition-colors flex justify-between ${filter === 'YELLOW' ? 'bg-amber-500/10 text-amber-400' : 'hover:bg-slate-800/50'}`}><span>Warning</span> <span>{yellowCount}</span></button>
+              <button onClick={() => setFilter('GREEN')} className={`w-full text-left px-4 py-2 rounded-lg transition-colors flex justify-between ${filter === 'GREEN' ? 'bg-emerald-500/10 text-emerald-400' : 'hover:bg-slate-800/50'}`}><span>Healthy</span> <span>{data.projects.length - redCount - yellowCount}</span></button>
             </div>
           </div>
         </div>
@@ -92,7 +131,7 @@ function App() {
                     </div>
                     <p className="text-xs text-slate-400 px-7">{project.id} &bull; {project.department}</p>
                   </div>
-                  <div className={`px-3 py-1 rounded-full border flex items-center gap-2 text-xs font-bold \${getHealthColor(project.health)}`}>
+                  <div className={`px-3 py-1 rounded-full border flex items-center gap-2 text-xs font-bold ${getHealthColor(project.health)}`}>
                     {getHealthIcon(project.health)}
                     <span>{project.health}</span>
                   </div>
