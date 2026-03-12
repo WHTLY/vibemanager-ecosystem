@@ -25,7 +25,11 @@ uses them to validate YAML files and task frontmatter.
         "department": { "type": "string", "minLength": 1 },
         "target_quarter": { "type": "string" },
         "created_at": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
-        "last_updated": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
+        "last_updated": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+        "migration_mode": {
+          "type": "string",
+          "enum": ["none", "replace", "shadow", "phased"]
+        }
       },
       "additionalProperties": true
     },
@@ -183,6 +187,7 @@ uses them to validate YAML files and task frontmatter.
                 "title": { "type": "string" },
                 "description": { "type": "string" },
                 "copy_text": { "type": "string" },
+                "required_for_done": { "type": "boolean" },
                 "links_to": { "type": "array", "items": { "type": "string" } }
               },
               "additionalProperties": true

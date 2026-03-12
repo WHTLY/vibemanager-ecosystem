@@ -104,8 +104,8 @@ This file defines the **Session Protocol** and canon discipline.
 4. Update `VibeAgent/ROADMAP.md`
 5. Create a session note: `VibeAgent/sessions/YYYY-MM-DD_{AGENT}_{objective_slug}.md`
 6. **Session Archiving**: If `sessions/` has >10 files, compress the 5 oldest into `sessions/archive/WEEK_{X}_{SUMMARY}.md`.
-7. Run: `node VibeAgent/_tools/validate.js`
-8. **You must pass validation before completing work for the human.**
+7. Run: `node VibeAgent/_tools/close-session.js`
+8. **You must pass close-session before completing work for the human.**
 ```
 
 ---
@@ -321,6 +321,7 @@ project:
   target_quarter: "Q3 2026"
   created_at: "{DATE}"
   last_updated: "{DATE}"
+  migration_mode: "{MIGRATION_MODE}"
 
 owners:
   - name: "TBD"
@@ -384,10 +385,12 @@ command_groups:
         title: "Validate canon"
         description: "Run VibeAgent validator to check integrity"
         copy_text: "node VibeAgent/_tools/validate.js"
+        required_for_done: false
       - id: "CMD_CLOSE"
         title: "Close session"
-        description: "Enforce session close with validation"
+        description: "Enforce session close with validation and required verification commands"
         copy_text: "node VibeAgent/_tools/close-session.js"
+        required_for_done: false
 ```
 
 ---

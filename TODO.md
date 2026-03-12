@@ -72,3 +72,25 @@
 - Skill теперь умеет различать greenfield bootstrap и migration onboarding.
 - Появился отдельный playbook для migration questionnaire, legacy mapping и import-as-extras логики.
 - Добавлен `audit-harness.js` для классификации существующего governance surface перед миграцией.
+
+## Active Work: Harness Engineering Alignment
+
+### Findings
+
+- Исходная идея репозитория остаётся узкой: `VibeAgent-skill` должен усиливать governance/execution через существующий canon, а `VibeManager-app` должен оставаться тонким portfolio observer.
+- Прошлая версия плана была слишком широкой для этого shape: новые обязательные canon-файлы и synthetic readiness score добавили бы лишнюю поверхность без прямой operational отдачи.
+- Самая полезная часть harness-engineering для этого проекта лежит не в новых docs, а в safer migration gate, command-backed verification и минимальном сигнале о качестве harness на уровне aggregate.
+
+### Plan
+
+- [ ] Сделать migration bootstrap safe-by-default: legacy harness -> preflight without writes unless explicit migration flags are provided.
+- [ ] Добавить минимальные schema/tooling расширения: `project.migration_mode` в metadata и `required_for_done` в command entries.
+- [ ] Научить `close-session.js` запускать required verification commands после structural validation.
+- [ ] Протащить минимальный harness signal в aggregate/UI без readiness score и без новых обязательных canonical docs.
+- [ ] Прогнать targeted tests и зафиксировать остаточные риски.
+
+### Idea Log
+
+- Не добавлять обязательные `RUNBOOK.md`, `REFERENCE_EXAMPLES.md`, `LOCAL_CONTEXT.md` и отдельный `MIGRATION.md`: нужный signal уже укладывается в текущий canon.
+- Если bootstrap не может уверенно определить verification commands, лучше записать их как reference entries без `required_for_done`, чем гадать.
+- Для migration UX безопаснее explicit rerun с flags, чем интерактивный wizard внутри `curl | bash`.

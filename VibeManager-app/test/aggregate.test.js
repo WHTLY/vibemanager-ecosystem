@@ -35,10 +35,16 @@ describe('aggregate', () => {
     assert.strictEqual(p.next, 'Ship the feature.');
     assert.strictEqual(p.blockers.length, 1);
     assert.strictEqual(p.blockers[0].title, 'Blocked task');
+    assert.deepStrictEqual(p.harness, {
+      status: 'YELLOW',
+      migrationMode: 'shadow',
+      verificationGaps: 0,
+    });
 
     const md = readFileSync(mdPath, 'utf8');
     assert.ok(md.includes('Fake Project'), 'MD has project name');
     assert.ok(md.includes('GREEN'), 'MD has health');
+    assert.ok(md.includes('Harness'), 'MD has harness signal');
     assert.ok(md.includes('Blocked task'), 'MD has blocker');
   });
 });

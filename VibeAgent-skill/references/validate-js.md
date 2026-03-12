@@ -47,9 +47,16 @@ function ensure(condition, msg, remediation) {
 
 function getSectionBody(markdown, heading) {
   const escapedHeading = heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const pattern = new RegExp(`^## ${escapedHeading}\\b([\\s\\S]*?)(?=\\n## |\\n# |$)`, 'm');
-  const match = markdown.match(pattern);
-  return match ? match[1].trim() : '';
+  const headingMatch = markdown.match(new RegExp(`^## ${escapedHeading}\\b.*$`, 'm'));
+  if (!headingMatch || typeof headingMatch.index !== 'number') {
+    return '';
+  }
+
+  const start = headingMatch.index + headingMatch[0].length;
+  const rest = markdown.slice(start);
+  const nextHeading = rest.search(/\n## |\n# /);
+  const body = nextHeading === -1 ? rest : rest.slice(0, nextHeading);
+  return body.trim();
 }
 
 try {
@@ -226,6 +233,29 @@ try {
     }
   }
 
+  let commandsPack;
+  try {
+    commandsPack = yaml.parse(readFileSync(join(root, 'COMMANDS.yaml'), 'utf-8'));
+  } catch (e) {
+    runtimeError(`Could not parse VibeAgent/COMMANDS.yaml: ${e.message}`, [
+      'Open VibeAgent/COMMANDS.yaml.',
+      'Fix the YAML syntax or restore the file from bootstrap templates.',
+      'Run validation again once the file parses cleanly.'
+    ]);
+  }
+
+  for (const group of commandsPack?.command_groups || []) {
+    for (const command of group?.commands || []) {
+      if (command?.required_for_done === true) {
+        ensure(typeof command.copy_text === 'string' && command.copy_text.trim().length > 0, `Command ${command.id || '(missing id)'} is marked required_for_done but has no executable copy_text.`, [
+          'Open VibeAgent/COMMANDS.yaml.',
+          'For each command with required_for_done: true, provide a non-empty copy_text command.',
+          'If the command is not yet trustworthy, set required_for_done: false instead.'
+        ]);
+      }
+    }
+  }
+
   console.log('Validation logic initialized successfully. All core assertions passed.');
   process.exit(0);
 } catch (e) {
@@ -247,8 +277,9 @@ try {
 ```javascript
 #!/usr/bin/env node
 import { execSync } from 'node:child_process';
-import { readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import yaml from 'yaml';
 
 const root = join(process.cwd(), 'VibeAgent');
 const activeSessionsDir = join(root, 'sessions');
@@ -262,6 +293,29 @@ function fail(msg, remediation) {
   process.exit(2);
 }
 
+function loadRequiredCommands() {
+  let commandsPack;
+  try {
+    commandsPack = yaml.parse(readFileSync(join(root, 'COMMANDS.yaml'), 'utf-8'));
+  } catch (e) {
+    fail(`Could not parse VibeAgent/COMMANDS.yaml: ${e.message}`, [
+      'Open VibeAgent/COMMANDS.yaml and fix the YAML syntax.',
+      'Restore the file from bootstrap templates if needed.',
+      'Run close-session again after fixing the file.'
+    ]);
+  }
+
+  const requiredCommands = [];
+  for (const group of commandsPack?.command_groups || []) {
+    for (const command of group?.commands || []) {
+      if (command?.required_for_done === true) {
+        requiredCommands.push(command);
+      }
+    }
+  }
+  return requiredCommands;
+}
+
 console.log('=== Session Close Check ===\n');
 
 try {
@@ -270,6 +324,27 @@ try {
 } catch {
   console.error('\n❌ Canon validation failed — fix errors before closing session');
   process.exit(2);
+}
+
+const requiredCommands = loadRequiredCommands();
+if (requiredCommands.length === 0) {
+  console.log('\nℹ️ No required verification commands configured in COMMANDS.yaml');
+} else {
+  console.log('\n🧪 Running required verification commands...');
+  for (const command of requiredCommands) {
+    try {
+      console.log(`\n> ${command.title || command.id}`);
+      console.log(`$ ${command.copy_text}`);
+      execSync(command.copy_text, { stdio: 'inherit' });
+    } catch (e) {
+      fail(`Required verification command failed: ${command.id || command.title || command.copy_text}`, [
+        'Fix the failing command or the underlying code issue it exposed.',
+        'If this command should not block session completion, set required_for_done: false in VibeAgent/COMMANDS.yaml.',
+        'Run close-session again after the required verification command passes.'
+      ]);
+    }
+  }
+  console.log('\n✅ Required verification commands passed');
 }
 
 try {

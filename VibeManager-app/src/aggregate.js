@@ -16,6 +16,36 @@ const aggregated = {
 let mdSummary = `# VibeManager Workspace Summary\n\n`;
 mdSummary += `*Last Updated: ${aggregated.lastUpdated}*\n\n`;
 
+function getSectionBody(markdown, heading) {
+    const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const headingMatch = markdown.match(new RegExp(`^## ${escaped}\\b.*$`, 'm'));
+    if (!headingMatch || typeof headingMatch.index !== 'number') {
+        return '';
+    }
+
+    const start = headingMatch.index + headingMatch[0].length;
+    const rest = markdown.slice(start);
+    const nextHeading = rest.search(/\n## |\n# /);
+    const body = nextHeading === -1 ? rest : rest.slice(0, nextHeading);
+    return body.trim();
+}
+
+function getHarnessStatus({ missingCoreFiles, verificationGaps, migrationMode }) {
+    if (verificationGaps > 0) {
+        return 'RED';
+    }
+    if (missingCoreFiles.length > 0) {
+        return 'YELLOW';
+    }
+    if (migrationMode === 'shadow' || migrationMode === 'phased') {
+        return 'YELLOW';
+    }
+    if (migrationMode === 'replace' || migrationMode === 'none') {
+        return 'GREEN';
+    }
+    return 'UNKNOWN';
+}
+
 if (existsSync(dataDir)) {
     const projectDirs = readdirSync(dataDir, { withFileTypes: true })
         .filter(dirent => dirent.isDirectory())
@@ -37,8 +67,14 @@ if (existsSync(dataDir)) {
             tasks: [],
             blockers: [],
             next: '',
-            statusText: ''
+            statusText: '',
+            harness: {
+                status: 'UNKNOWN',
+                migrationMode: 'unknown',
+                verificationGaps: 0,
+            },
         };
+        const missingCoreFiles = [];
 
         // Load METADATA.yaml
         const metadataPath = join(vibeAgentPath, 'METADATA.yaml');
@@ -48,7 +84,10 @@ if (existsSync(dataDir)) {
                 projectData.id = pack.project.id || dirName;
                 projectData.name = pack.project.name || projectData.name;
                 projectData.department = pack.project.department || 'UNKNOWN';
+                projectData.harness.migrationMode = pack.project.migration_mode || 'none';
             }
+        } else {
+            missingCoreFiles.push('METADATA.yaml');
         }
 
         // Load STATUS.md
@@ -61,6 +100,8 @@ if (existsSync(dataDir)) {
             if (healthMatch) {
                 projectData.health = healthMatch[1];
             }
+        } else {
+            missingCoreFiles.push('STATUS.md');
         }
 
         // Load ROADMAP.md
@@ -72,6 +113,13 @@ if (existsSync(dataDir)) {
             if (nextMatch) {
                 projectData.next = nextMatch[1].trim();
             }
+        } else {
+            missingCoreFiles.push('ROADMAP.md');
+        }
+
+        const commandsPath = join(vibeAgentPath, 'COMMANDS.yaml');
+        if (!existsSync(commandsPath)) {
+            missingCoreFiles.push('COMMANDS.yaml');
         }
 
         // Load tasks/*.md
@@ -88,18 +136,30 @@ if (existsSync(dataDir)) {
                         if (taskMeta.status === 'blocked') {
                             projectData.blockers.push(taskMeta);
                         }
+                        if (taskMeta.status === 'done' && getSectionBody(taskContent, 'Verification').length === 0) {
+                            projectData.harness.verificationGaps += 1;
+                        }
                     } catch (e) {
                         console.error(`Error parsing task YAML in ${taskFile}:`, e);
                     }
                 }
             }
+        } else {
+            missingCoreFiles.push('tasks/');
         }
+
+        projectData.harness.status = getHarnessStatus({
+            missingCoreFiles,
+            verificationGaps: projectData.harness.verificationGaps,
+            migrationMode: projectData.harness.migrationMode,
+        });
 
         aggregated.projects.push(projectData);
 
         // Build Markdown block
         mdSummary += `## Project: ${projectData.name} (${projectData.id})\n`;
         mdSummary += `- **Health**: ${projectData.health}\n`;
+        mdSummary += `- **Harness**: ${projectData.harness.status} (migration: ${projectData.harness.migrationMode}, verification gaps: ${projectData.harness.verificationGaps})\n`;
         mdSummary += `- **Department**: ${projectData.department}\n`;
         mdSummary += `- **Blocked Tasks**: ${projectData.blockers.length}\n`;
         if (projectData.blockers.length > 0) {

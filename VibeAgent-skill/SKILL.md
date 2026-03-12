@@ -69,7 +69,7 @@ When initializing governance for a new project, create the full structure.
 Read `references/bootstrap-templates.md` for the complete file templates.
 
 **Two paths:**
-- **One-click:** Run the installer (from the ecosystem repo). It fetches and runs `auto-bootstrap.js`, which creates VibeAgent/ dirs, all template files from bootstrap-templates, AGENTS.md (with placeholders), _tools/ (validate.js, close-session.js from references/validate-js.md), and _schemas/ (from references/schemas.md). Production URL: see project README (e.g. `curl -sSL .../VibeAgent-skill/scripts/install.sh | bash -s "Project Name" "PROJ-ID" "Department"`).
+- **One-click:** Run the installer (from the ecosystem repo). It fetches and runs `auto-bootstrap.js`, which creates VibeAgent/ dirs, all template files from bootstrap-templates, AGENTS.md (with placeholders), _tools/ (validate.js, close-session.js from references/validate-js.md), and _schemas/ (from references/schemas.md). If existing governance artifacts are detected, bootstrap must stop in preflight mode until the user confirms migration intent via explicit flags. Production URL: see project README (e.g. `curl -sSL .../VibeAgent-skill/scripts/install.sh | bash -s "Project Name" "PROJ-ID" "Department"`).
 - **Manual:** Run `scripts/bootstrap.sh` to create VibeAgent/ dirs only. Then generate file content from `references/bootstrap-templates.md` and `references/agents-md-template.md` (extract inner markdown, replace placeholders). Manual bootstrap does not create _schemas/ or _tools/ unless the agent also deploys them (e.g. fetch schemas.md and validate-js.md, extract and write).
 
 **Handling Existing Projects (Quarantine First):** If bootstrapping into a project that already has unstructured task lists (e.g., TODO.txt, old markdown plans), parse those docs into the new `VibeAgent/tasks/` format and move the old legacy files to `VibeAgent/quarantine/`. Do not leave unstructured legacy task files floating around.
@@ -126,10 +126,10 @@ project-root/
 ### Bootstrap Steps
 
 1. Create the `VibeAgent/` directory and all subdirectories
-2. If an existing harness/canon is present, follow Migration Intake & Questionnaire before continuing
+2. If an existing harness/canon is present, follow Migration Intake & Questionnaire before continuing. Do not overwrite files until migration mode is explicit.
 3. Generate all template files from `references/bootstrap-templates.md`
 4. Create `AGENTS.md` in the project root (see `references/agents-md-template.md`)
-5. Customize `METADATA.yaml` with the project ID, project name, department, and current date
+5. Customize `METADATA.yaml` with the project ID, project name, department, current date, and migration mode (`none` for greenfield)
 6. Recommend or automatically set up Git pre-commit hooks to run `validate.js`
 7. Run validation: `node VibeAgent/_tools/validate.js`
 
@@ -160,6 +160,7 @@ Use this flow when the project already contains any governance system, including
 - Inspect the repo for existing harness/canon artifacts before writing VibeAgent files.
 - Prefer using the bundled migration audit script when available.
 - Classify findings into: active tasks, roadmaps/plans, prompts, commands/runbooks, research/architecture notes, session history, rules/guardrails, and obsolete noise.
+- If using one-click bootstrap, legacy harness detection must be preflight-only until `--migration-mode=replace|shadow|phased` is supplied.
 
 ### Pre-Migration Questionnaire
 Before migrating, summarize findings and ask the user these questions in plain language:
@@ -254,7 +255,7 @@ Before ending a full session, promote all work into canon:
 4. **Update `VibeAgent/ROADMAP.md`** — if objectives changed or were completed
 5. **Create session note**: `VibeAgent/sessions/YYYY-MM-DD_{AGENT}_{objective_slug}.md`
 6. **Session Archiving check**: If `VibeAgent/sessions/` has more than 10 files, select the 5 oldest files, compress them into `VibeAgent/sessions/archive/WEEK_{X}_{SUMMARY}.md`, and delete the originals.
-7. **Run validation**: `node VibeAgent/_tools/validate.js`. **You must pass validation before replying to the user.**
+7. **Run session close gate**: `node VibeAgent/_tools/close-session.js`. **You must pass close-session before replying to the user.**
 
 ## 7. Lite Mode
 
@@ -278,6 +279,11 @@ The canon validator (`VibeAgent/_tools/validate.js`) checks:
 - Task structure is complete enough to support planning and verification
 - Strict health formats in STATUS.md
 
+The session close gate (`VibeAgent/_tools/close-session.js`) must:
+- run `validate.js`
+- execute all `COMMANDS.yaml` entries marked `required_for_done: true`
+- fail with agent-legible remediation if validation, required verification, or session-note rules fail
+
 *Harness Engineering Principle (Observability):* Any validation error outputted by these scripts should be explicitly "Agent-Legible". It must contain specific remediation instructions tailored to an LLM on exactly how to fix the error in the repository.
 
 **Example of an Agent-Legible Error Log:**
@@ -298,11 +304,11 @@ Exit codes: `0` (valid), `2` (failed), `3` (error)
 
 ## 10. Examples
 
-- User: "Bootstrap this repo" / "Set up VibeAgent" — Run or recommend one-click install; create VibeAgent/ from references/bootstrap-templates.md and AGENTS.md from agents-md-template; run validate.js.
+- User: "Bootstrap this repo" / "Set up VibeAgent" — Run or recommend one-click install; create VibeAgent/ from references/bootstrap-templates.md and AGENTS.md from agents-md-template; if legacy governance is detected, stop at migration preflight until explicit mode is chosen; run validate.js.
 - User: "Migrate our existing AI harness" / "Adopt VibeAgent without losing our current workflow" — audit the current harness first, present the migration questionnaire, import useful extras into canonical destinations, quarantine superseded artifacts, then validate.
 - User: "What's the status?" / "Any blockers?" — Read VibeAgent/STATUS.md and VibeAgent/ROADMAP.md; summarize health, blockers, next steps.
 - User: "Fix this failing test" / "Investigate this bug" — collect evidence first, create or update a task plan if the work is non-trivial, fix the root cause, record verification, then update canon.
-- User: "Close my session" — Update tasks, STATUS.md, ROADMAP.md; create session note in VibeAgent/sessions/; run node VibeAgent/_tools/close-session.js (or validate.js); do not reply until validation passes.
+- User: "Close my session" — Update tasks, STATUS.md, ROADMAP.md; create session note in VibeAgent/sessions/; run `node VibeAgent/_tools/close-session.js`; do not reply until it passes.
 
 ## 11. Resources
 
@@ -313,4 +319,4 @@ Exit codes: `0` (valid), `2` (failed), `3` (error)
 - `references/validate-js.md` — validate.js source.
 - `scripts/audit-harness.js` — Detect and classify existing governance artifacts before migration.
 - `scripts/bootstrap.sh` — Manual bootstrap (dirs only); use with bootstrap-templates for full setup.
-- One-click install: `curl -sSL <ecosystem>/VibeAgent-skill/scripts/install.sh | bash -s "Project Name" "PROJ-ID" "Department"` (see README for URL).
+- One-click install: `curl -sSL <ecosystem>/VibeAgent-skill/scripts/install.sh | bash -s "Project Name" "PROJ-ID" "Department"` (append migration flags if the repo already has a harness, e.g. `--migration-mode=shadow`).

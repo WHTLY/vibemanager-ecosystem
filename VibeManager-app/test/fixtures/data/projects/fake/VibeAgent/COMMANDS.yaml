@@ -1,0 +1,9 @@
+commands_version: 1
+command_groups:
+  - id: CMD_GROUP_GOVERNANCE
+    title: Governance
+    commands:
+      - id: CMD_VALIDATE
+        title: Validate canon
+        copy_text: node VibeAgent/_tools/validate.js
+        required_for_done: false

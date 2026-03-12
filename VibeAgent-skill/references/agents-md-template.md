@@ -56,7 +56,7 @@ Before ending your session:
 4. Update `VibeAgent/ROADMAP.md` — if epics or objectives changed/finished.
 5. Create session note: `VibeAgent/sessions/YYYY-MM-DD_{AGENT}_{short_slug}.md`.
 6. **Session Archiving**: If `sessions/` has >10 files, you MUST compress the 5 oldest into one file under `sessions/archive/WEEK_X_SUMMARY.md` and delete the originals.
-7. Run: `node VibeAgent/_tools/validate.js`. **DO NOT REPLY to the user until this validation passes.**
+7. Run: `node VibeAgent/_tools/close-session.js`. **DO NOT REPLY to the user until this check passes.**
 
 ## Key Rules
 

@@ -5,8 +5,8 @@ import App from './App.jsx';
 const mockData = {
   lastUpdated: '2025-01-15T12:00:00.000Z',
   projects: [
-    { id: 'P1', name: 'Proj One', health: 'GREEN', department: 'Eng', blockers: [], statusText: '', next: '' },
-    { id: 'P2', name: 'Proj Two', health: 'RED', department: 'Eng', blockers: [{ id: 'b1', title: 'Blocker' }], statusText: '', next: '' },
+    { id: 'P1', name: 'Proj One', health: 'GREEN', department: 'Eng', blockers: [], statusText: '', next: '', harness: { status: 'GREEN', migrationMode: 'none', verificationGaps: 0 } },
+    { id: 'P2', name: 'Proj Two', health: 'RED', department: 'Eng', blockers: [{ id: 'b1', title: 'Blocker' }], statusText: '', next: '', harness: { status: 'YELLOW', migrationMode: 'shadow', verificationGaps: 0 } },
   ],
 };
 
@@ -24,6 +24,8 @@ describe('App', () => {
     await screen.findByText('Proj One');
     expect(screen.getByText('Proj Two')).toBeInTheDocument();
     expect(screen.getByText(/Last updated/)).toBeInTheDocument();
+    expect(screen.getByText(/Harness GREEN/)).toBeInTheDocument();
+    expect(screen.getByText(/Migration: shadow/)).toBeInTheDocument();
 
     const criticalBtn = screen.getByRole('button', { name: /Critical/ });
     fireEvent.click(criticalBtn);

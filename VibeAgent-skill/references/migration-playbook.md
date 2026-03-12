@@ -15,10 +15,18 @@ Use this reference when the project already contains any governance system, harn
 2. Summarize what was detected for the user in plain language.
 3. Ask the pre-migration questionnaire before writing or moving files.
 4. Decide migration mode: replace, shadow, or phased.
-5. Bootstrap or upgrade VibeAgent core files.
-6. Import useful extras into canonical destinations.
-7. Quarantine superseded artifacts and log the mapping.
-8. Validate the resulting canon before declaring migration complete.
+5. If using one-click bootstrap, rerun it with explicit migration flags only after the questionnaire is answered.
+6. Bootstrap or upgrade VibeAgent core files.
+7. Import useful extras into canonical destinations.
+8. Quarantine superseded artifacts and log the mapping.
+9. Validate the resulting canon before declaring migration complete.
+
+Suggested bootstrap flags:
+- `--migration-mode=replace|shadow|phased`
+- `--authoritative=path1,path2`
+- `--import-extras=prompts,commands,rules,research,architecture,sessions,tasks`
+- `--quarantine=immediate|after-validate`
+- `--protect=path1,path2`
 
 ## Pre-Migration Questionnaire
 

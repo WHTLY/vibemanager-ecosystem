@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, CheckCircle2, AlertTriangle, XCircle, Activity, Box, Filter } from 'lucide-react';
+import { LayoutDashboard, CheckCircle2, AlertTriangle, XCircle, Activity, Box, Filter, Shield } from 'lucide-react';
 
 const emptyData = { projects: [], lastUpdated: '' };
 
@@ -43,6 +43,15 @@ function App() {
       case 'RED': return <XCircle className="w-5 h-5 text-rose-400" />;
       default: return <Activity className="w-5 h-5 text-slate-400" />;
     }
+  };
+
+  const getHarnessMeta = (project) => {
+    const harness = project.harness || {};
+    return {
+      status: harness.status || 'UNKNOWN',
+      migrationMode: harness.migrationMode || 'unknown',
+      verificationGaps: harness.verificationGaps || 0,
+    };
   };
 
   const filteredProjects = data.projects.filter(p => filter === 'ALL' || p.health === filter);
@@ -118,7 +127,9 @@ function App() {
 
         <div className="md:col-span-3">
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            {filteredProjects.map((project, index) => (
+            {filteredProjects.map((project, index) => {
+              const harness = getHarnessMeta(project);
+              return (
               <div key={project.id} className="glass-card rounded-2xl p-6 group flex flex-col h-full animate-fade-in-up" style={{ '--i': index }}>
                 <div className="flex justify-between items-start mb-4">
                   <div>
@@ -127,6 +138,13 @@ function App() {
                       <h3 className="text-xl font-bold text-white group-hover:text-indigo-300 transition-colors">{project.name}</h3>
                     </div>
                     <p className="text-xs text-slate-400 px-7">{project.id} &bull; {project.department}</p>
+                    <div className={`mt-2 ml-7 inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${getHealthColor(harness.status)}`}>
+                      <Shield className="w-3.5 h-3.5" />
+                      <span>Harness {harness.status}</span>
+                    </div>
+                    <p className="mt-2 text-[11px] text-slate-500 px-7">
+                      Migration: {harness.migrationMode} &bull; Verification gaps: {harness.verificationGaps}
+                    </p>
                   </div>
                   <div className={`px-3 py-1 rounded-full border flex items-center gap-2 text-xs font-bold ${getHealthColor(project.health)}`}>
                     {getHealthIcon(project.health)}
@@ -166,7 +184,7 @@ function App() {
                 </div>
 
               </div>
-            ))}
+            )})}
 
             {filteredProjects.length === 0 && (
               <div className="col-span-full py-20 text-center glass-panel rounded-2xl animate-fade-in-up" style={{ '--i': 0 }}>
